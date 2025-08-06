@@ -28,10 +28,12 @@ class FogComputingSimulator:
             "Response Transmission"
         ]
     
-    def generate_encryption_key(self, password=None):
-        """Generate encryption key for AES-256"""
+    def generate_encryption_key(self, password=None, rotate_key=True):
+        """Generate encryption key for AES-256 with optional rotation"""
         if password is None:
-            password = "traffic_management_secure_key_2024"
+            # Include timestamp for key rotation
+            timestamp = str(int(time.time() // 300))  # Rotate every 5 minutes
+            password = f"traffic_management_secure_key_2024_{timestamp}" if rotate_key else "traffic_management_secure_key_2024"
         
         # Convert password to bytes
         password = password.encode()
@@ -49,6 +51,33 @@ class FogComputingSimulator:
         key = base64.urlsafe_b64encode(kdf.derive(password))
         
         return key, salt
+    
+    def detect_anomalies(self, data):
+        """Detect anomalies in transmitted data for security"""
+        anomalies = []
+        
+        # Check for unusual data patterns
+        if isinstance(data, dict):
+            # Check for suspicious field values
+            if data.get('vehicle_count', 0) > 1000:
+                anomalies.append("Unusually high vehicle count detected")
+            
+            # Check for data consistency
+            if data.get('average_speed_kmph', 0) < 0 or data.get('average_speed_kmph', 0) > 200:
+                anomalies.append("Invalid speed value detected")
+            
+            # Check timestamp validity
+            current_time = time.time()
+            data_time = data.get('timestamp', current_time)
+            if abs(current_time - data_time) > 3600:  # 1 hour threshold
+                anomalies.append("Suspicious timestamp detected")
+        
+        return {
+            'has_anomalies': len(anomalies) > 0,
+            'anomaly_count': len(anomalies),
+            'anomalies': anomalies,
+            'security_score': max(0, 100 - (len(anomalies) * 25))
+        }
     
     def encrypt_data(self, data, key):
         """Encrypt data using AES-256"""

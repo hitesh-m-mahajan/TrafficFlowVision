@@ -184,7 +184,27 @@ class TrafficDecisionEngine:
                 'Timeline': '3-6 months'
             })
         
-        # General improvements
+        # Long-term planning recommendations
+        insights.append({
+            'Priority': 'Medium',
+            'Category': 'Long-term Planning',
+            'Recommendation': 'Develop adaptive traffic zones based on historical patterns',
+            'Impact': 'Improve overall traffic efficiency by 25-40%',
+            'Cost_Estimate': 'High ($2-8M)',
+            'Timeline': '3-5 years'
+        })
+        
+        # Peak hour management
+        insights.append({
+            'Priority': 'Medium',
+            'Category': 'Peak Hour Management',
+            'Recommendation': 'Implement dynamic pricing for peak hour usage',
+            'Impact': 'Reduce peak hour congestion by 30%',
+            'Cost_Estimate': 'Low ($25K-75K)',
+            'Timeline': '6-9 months'
+        })
+        
+        # Technology upgrades
         insights.append({
             'Priority': 'Low',
             'Category': 'Technology',
