@@ -216,6 +216,201 @@ class TrafficDecisionEngine:
         
         return insights
     
+    def generate_comprehensive_recommendations(self, vehicle_counts, total_vehicles, density, predictions, weather_condition, hour, day_of_week):
+        """Generate comprehensive text-based recommendations based on traffic analysis"""
+        recommendations = {
+            'immediate_actions': [],
+            'weather_advice': [],
+            'time_based': [],
+            'optimization': [],
+            'summary': '',
+            'priority_actions': [],
+            'expected_improvement': '',
+            'congestion_reduction': '',
+            'safety_improvement': ''
+        }
+        
+        # Determine congestion level
+        avg_prediction = sum(predictions.values()) / len(predictions) if predictions else 50
+        congestion_level = self.determine_congestion_level(avg_prediction)
+        
+        # Immediate Actions based on traffic density
+        if density > 0.8:
+            recommendations['immediate_actions'].append({
+                'action': 'Emergency Traffic Control',
+                'description': 'Deploy traffic controllers to critical intersections immediately',
+                'priority': 'High',
+                'reason': 'Traffic density exceeds 80% - risk of gridlock is imminent'
+            })
+            recommendations['immediate_actions'].append({
+                'action': 'Activate Alternative Routes',
+                'description': 'Redirect traffic to parallel roads and alternative pathways',
+                'priority': 'High',
+                'reason': 'Current route is at capacity - diversion necessary'
+            })
+        elif density > 0.6:
+            recommendations['immediate_actions'].append({
+                'action': 'Optimize Signal Timing',
+                'description': 'Increase green light duration for heavily congested directions',
+                'priority': 'Medium',
+                'reason': 'Moderate congestion detected - proactive management needed'
+            })
+            recommendations['immediate_actions'].append({
+                'action': 'Monitor Traffic Flow',
+                'description': 'Increase monitoring frequency to every 2-3 minutes',
+                'priority': 'Medium',
+                'reason': 'Traffic approaching critical levels - enhanced surveillance required'
+            })
+        else:
+            recommendations['immediate_actions'].append({
+                'action': 'Maintain Current Operations',
+                'description': 'Continue standard traffic management protocols',
+                'priority': 'Low',
+                'reason': 'Traffic flow is within normal parameters'
+            })
+        
+        # Vehicle type specific recommendations
+        if vehicle_counts.get('truck', 0) > total_vehicles * 0.3:
+            recommendations['immediate_actions'].append({
+                'action': 'Heavy Vehicle Management',
+                'description': 'Implement dedicated lanes or time restrictions for trucks',
+                'priority': 'Medium',
+                'reason': f'High truck volume ({vehicle_counts.get("truck", 0)}) detected - separate management needed'
+            })
+        
+        # Weather-specific advice
+        if weather_condition == 'Rainy':
+            recommendations['weather_advice'].extend([
+                'Reduce speed limits by 10-15 km/h due to wet road conditions',
+                'Increase following distance recommendations via digital signs',
+                'Activate enhanced lighting systems for better visibility',
+                'Deploy additional emergency response units in high-risk areas'
+            ])
+        elif weather_condition == 'Snowy':
+            recommendations['weather_advice'].extend([
+                'Implement winter driving speed restrictions (max 40 km/h in urban areas)',
+                'Activate sand/salt distribution systems immediately',
+                'Issue advisory for winter tires and chains requirements',
+                'Prepare for possible road closures if conditions worsen'
+            ])
+        elif weather_condition == 'Foggy':
+            recommendations['weather_advice'].extend([
+                'Activate fog lights and enhanced visibility systems',
+                'Reduce speed limits to 30 km/h in low visibility zones',
+                'Increase radio traffic updates frequency to every 5 minutes',
+                'Consider temporary closure of high-risk road segments'
+            ])
+        elif weather_condition == 'Sunny':
+            recommendations['weather_advice'].extend([
+                'Optimal conditions for traffic flow - maintain standard operations',
+                'Good visibility allows for normal speed limits',
+                'Consider extended green light phases to maximize flow'
+            ])
+        else:  # Cloudy
+            recommendations['weather_advice'].extend([
+                'Standard weather protocols apply',
+                'Monitor for potential weather changes',
+                'Maintain regular traffic management procedures'
+            ])
+        
+        # Time-based recommendations
+        is_rush_hour = hour in [7, 8, 9, 17, 18, 19]
+        is_weekend = day_of_week in ['Saturday', 'Sunday']
+        
+        if is_rush_hour and not is_weekend:
+            recommendations['time_based'].append({
+                'timeframe': 'Rush Hour Management',
+                'recommendation': 'Implement dynamic pricing, extend public transit frequency, and activate all traffic management systems'
+            })
+            recommendations['time_based'].append({
+                'timeframe': 'Peak Period Strategy',
+                'recommendation': 'Coordinate with neighboring intersections for synchronized traffic flow'
+            })
+        elif is_weekend:
+            recommendations['time_based'].append({
+                'timeframe': 'Weekend Traffic',
+                'recommendation': 'Focus on recreational area access and shopping district traffic flow'
+            })
+        elif hour >= 22 or hour <= 6:
+            recommendations['time_based'].append({
+                'timeframe': 'Off-Peak Hours',
+                'recommendation': 'Reduce signal cycle times and prioritize energy efficiency'
+            })
+        else:
+            recommendations['time_based'].append({
+                'timeframe': 'Regular Hours',
+                'recommendation': 'Maintain standard traffic management protocols with regular monitoring'
+            })
+        
+        # Performance optimization recommendations
+        recommendations['optimization'].extend([
+            f'Implement adaptive signal control based on real-time vehicle count ({total_vehicles} vehicles detected)',
+            'Use predictive analytics to anticipate traffic pattern changes',
+            'Deploy mobile traffic management units to high-density areas',
+            'Coordinate with public transportation to provide alternative options'
+        ])
+        
+        if congestion_level == 'High':
+            recommendations['optimization'].extend([
+                'Activate emergency traffic management protocols',
+                'Consider implementing temporary one-way systems',
+                'Deploy additional traffic enforcement officers'
+            ])
+        
+        # Generate summary based on current situation
+        if density > 0.7:
+            situation = "critical"
+            action_urgency = "immediate"
+        elif density > 0.5:
+            situation = "concerning"
+            action_urgency = "prompt"
+        else:
+            situation = "manageable"
+            action_urgency = "routine"
+        
+        recommendations['summary'] = f"""
+        The current traffic situation is {situation} with {total_vehicles} vehicles detected and a density of {density:.1%}. 
+        {weather_condition} weather conditions are {'significantly' if weather_condition in ['Rainy', 'Snowy', 'Foggy'] else 'minimally'} impacting traffic flow. 
+        The predicted average speed of {avg_prediction:.1f} km/h indicates {congestion_level.lower()} congestion levels. 
+        {action_urgency.title()} action is recommended to {'prevent deterioration' if density > 0.6 else 'maintain optimal flow'} of traffic conditions.
+        """
+        
+        # Priority actions
+        if density > 0.8:
+            recommendations['priority_actions'] = [
+                'Deploy emergency traffic management teams',
+                'Activate all available alternative routes',
+                'Issue traffic advisories to local media'
+            ]
+        elif density > 0.6:
+            recommendations['priority_actions'] = [
+                'Optimize traffic signal coordination',
+                'Increase monitoring and response readiness',
+                'Prepare alternative routing plans'
+            ]
+        else:
+            recommendations['priority_actions'] = [
+                'Maintain current traffic management settings',
+                'Continue routine monitoring',
+                'Prepare for potential peak hour changes'
+            ]
+        
+        # Expected outcomes
+        if density > 0.7:
+            recommendations['expected_improvement'] = '15-25% improvement in traffic flow within 30 minutes'
+            recommendations['congestion_reduction'] = '20-40% reduction in congestion levels'
+            recommendations['safety_improvement'] = 'Significant reduction in accident risk'
+        elif density > 0.5:
+            recommendations['expected_improvement'] = '10-20% improvement in traffic flow within 15 minutes'
+            recommendations['congestion_reduction'] = '15-30% reduction in congestion levels'
+            recommendations['safety_improvement'] = 'Moderate improvement in traffic safety'
+        else:
+            recommendations['expected_improvement'] = '5-10% optimization of current flow'
+            recommendations['congestion_reduction'] = '10-15% efficiency improvement'
+            recommendations['safety_improvement'] = 'Maintained high safety standards'
+        
+        return recommendations
+    
     def calculate_environmental_impact(self, vehicle_count, average_speed, weather_condition):
         """Calculate environmental impact metrics"""
         # Base emissions per vehicle (grams CO2 per km)

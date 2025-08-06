@@ -861,6 +861,86 @@ if st.session_state.dataset is not None:
                             fig_gauge.update_layout(height=300)
                             st.plotly_chart(fig_gauge, use_container_width=True)
                         
+                        # Comprehensive Text-Based Recommendations Section
+                        st.markdown("---")
+                        st.markdown("#### 📝 Comprehensive Traffic Recommendations")
+                        
+                        # Generate detailed recommendations based on analysis
+                        recommendations = decision_engine.generate_comprehensive_recommendations(
+                            vehicle_counts=detection_results['vehicle_counts'],
+                            total_vehicles=total_vehicles,
+                            density=detection_results.get('density', 0),
+                            predictions=predictions,
+                            weather_condition=weather_condition,
+                            hour=hour,
+                            day_of_week=day_of_week
+                        )
+                        
+                        # Display recommendations in organized sections
+                        rec_col1, rec_col2 = st.columns(2)
+                        
+                        with rec_col1:
+                            st.markdown("##### 🚦 Immediate Actions")
+                            for rec in recommendations['immediate_actions']:
+                                st.markdown(f"• **{rec['action']}**: {rec['description']}")
+                                if rec['priority'] == 'High':
+                                    st.error(f"⚠️ {rec['reason']}")
+                                elif rec['priority'] == 'Medium':
+                                    st.warning(f"📋 {rec['reason']}")
+                                else:
+                                    st.info(f"💡 {rec['reason']}")
+                            
+                            st.markdown("##### 🌤️ Weather-Specific Advice")
+                            for advice in recommendations['weather_advice']:
+                                st.markdown(f"• {advice}")
+                        
+                        with rec_col2:
+                            st.markdown("##### ⏰ Time-Based Recommendations")
+                            for rec in recommendations['time_based']:
+                                st.markdown(f"• **{rec['timeframe']}**: {rec['recommendation']}")
+                            
+                            st.markdown("##### 🎯 Performance Optimization")
+                            for opt in recommendations['optimization']:
+                                st.markdown(f"• {opt}")
+                        
+                        # Detailed Analysis Summary
+                        st.markdown("##### 📊 Situation Analysis Summary")
+                        
+                        analysis_summary = f"""
+                        **Traffic Situation Assessment:**
+                        - **Vehicle Count**: {total_vehicles} vehicles detected
+                        - **Traffic Density**: {detection_results.get('density', 0):.1%} of road capacity
+                        - **Predicted Speed**: {avg_prediction:.1f} km/h
+                        - **Congestion Level**: {prediction_details[list(prediction_details.keys())[0]]['congestion'] if prediction_details else 'Medium'}
+                        - **Weather Impact**: {weather_condition} conditions affecting traffic flow
+                        - **Time Context**: {hour}:00 on {day_of_week}
+                        
+                        **Key Insights:**
+                        {recommendations['summary']}
+                        
+                        **Recommended Priority Actions:**
+                        1. {recommendations['priority_actions'][0] if recommendations['priority_actions'] else 'Monitor traffic conditions'}
+                        2. {recommendations['priority_actions'][1] if len(recommendations['priority_actions']) > 1 else 'Adjust signal timing as needed'}
+                        3. {recommendations['priority_actions'][2] if len(recommendations['priority_actions']) > 2 else 'Prepare contingency measures'}
+                        
+                        **Expected Outcomes:**
+                        - Traffic flow improvement: {recommendations['expected_improvement']}
+                        - Congestion reduction: {recommendations['congestion_reduction']}
+                        - Safety enhancement: {recommendations['safety_improvement']}
+                        """
+                        
+                        st.markdown(analysis_summary)
+                        
+                        # Additional contextual recommendations
+                        if total_vehicles > 50:
+                            st.warning("🚨 **High Vehicle Volume Detected**: Consider implementing dynamic traffic management strategies.")
+                        
+                        if detection_results.get('density', 0) > 0.7:
+                            st.error("🔴 **Critical Density Level**: Immediate intervention required to prevent gridlock.")
+                        
+                        if weather_condition in ['Rainy', 'Snowy', 'Foggy']:
+                            st.info("🌧️ **Weather Advisory**: Reduced visibility conditions require enhanced monitoring and adjusted speed limits.")
+                        
                         # Model comparison chart
                         st.markdown("##### 📊 Prediction Comparison")
                         
