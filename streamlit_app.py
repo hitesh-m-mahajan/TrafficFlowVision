@@ -198,7 +198,19 @@ if st.session_state.dataset is not None:
                 
                 # Vehicle detection
                 st.markdown("---")
-                st.subheader("🚗 Vehicle Detection Results")
+                col_status, col_threshold = st.columns([2, 1])
+                
+                with col_status:
+                    st.subheader("🚗 Vehicle Detection Results")
+                    if image_processor.model_loaded:
+                        st.success("✅ Using YOLOv8n Real-time Detection")
+                    else:
+                        st.warning("⚠️ Using Simulated Detection (YOLO not available)")
+                
+                with col_threshold:
+                    if image_processor.model_loaded:
+                        conf_threshold = st.slider("Confidence Threshold", 0.1, 0.9, 0.5, 0.05)
+                        image_processor.set_confidence_threshold(conf_threshold)
                 
                 with st.spinner("Detecting vehicles with YOLOv8..."):
                     detection_results = image_processor.detect_vehicles(np.array(image))

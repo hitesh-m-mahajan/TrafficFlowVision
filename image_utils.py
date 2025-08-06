@@ -15,9 +15,11 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
 
-# Note: YOLOv8 is typically used via ultralytics package
-# For this implementation, we'll simulate vehicle detection
-# In a real deployment, you would use: from ultralytics import YOLO
+try:
+    from ultralytics import YOLO
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
 
 class TrafficImageProcessor:
     def __init__(self):
@@ -25,13 +27,22 @@ class TrafficImageProcessor:
         self.trackers = {}
         self.next_id = 0
         
-        # Initialize YOLO model (simulated)
+        # Initialize YOLOv8n model
+        self.model = None
         self.model_loaded = False
-        try:
-            # In real implementation: self.model = YOLO('yolov8n.pt')
-            self.model_loaded = True
-        except:
-            print("YOLOv8 model not available. Using simulated detection.")
+        
+        if YOLO_AVAILABLE:
+            try:
+                print("Loading YOLOv8n model...")
+                self.model = YOLO('yolov8n.pt')  # This will download the model if not present
+                self.model_loaded = True
+                print("YOLOv8n model loaded successfully!")
+            except Exception as e:
+                print(f"Failed to load YOLOv8 model: {e}")
+                print("Using simulated detection instead.")
+                self.model_loaded = False
+        else:
+            print("Ultralytics not available. Using simulated detection.")
             self.model_loaded = False
     
     def process_image(self, image):
@@ -116,13 +127,105 @@ class TrafficImageProcessor:
             return self._simulated_detection(image)
     
     def _yolo_detection(self, image):
-        """Real YOLOv8 detection (placeholder for actual implementation)"""
-        # In real implementation:
-        # results = self.model(image)
-        # detections = results[0].boxes
-        
-        # For now, return simulated results
-        return self._simulated_detection(image)
+        """Real YOLOv8 detection implementation"""
+        try:
+            # Run inference
+            results = self.model(image, verbose=False)
+            
+            # Extract detections
+            detections = []
+            vehicle_counts = defaultdict(int)
+            annotated_image = image.copy()
+            
+            # COCO class names for vehicles
+            vehicle_class_names = {
+                2: 'car',      # car
+                3: 'motorcycle', # motorcycle  
+                5: 'bus',      # bus
+                7: 'truck',    # truck
+                1: 'bicycle'   # bicycle
+            }
+            
+            # Colors for different vehicle types
+            colors = {
+                'car': (0, 255, 0),      # Green
+                'truck': (255, 0, 0),    # Red
+                'bus': (0, 0, 255),      # Blue
+                'motorcycle': (255, 255, 0),  # Yellow
+                'bicycle': (255, 0, 255)  # Magenta
+            }
+            
+            # Process detections
+            if results[0].boxes is not None:
+                boxes = results[0].boxes
+                
+                for i in range(len(boxes)):
+                    # Get box coordinates
+                    x1, y1, x2, y2 = boxes.xyxy[i].cpu().numpy().astype(int)
+                    
+                    # Get class and confidence
+                    cls = int(boxes.cls[i].cpu().numpy())
+                    conf = float(boxes.conf[i].cpu().numpy())
+                    
+                    # Check if it's a vehicle class and confidence is above threshold
+                    if cls in vehicle_class_names and conf > 0.3:
+                        vehicle_type = vehicle_class_names[cls]
+                        
+                        detection = {
+                            'bbox': [x1, y1, x2, y2],
+                            'class': vehicle_type,
+                            'confidence': conf,
+                            'centroid': [(x1 + x2) // 2, (y1 + y2) // 2]
+                        }
+                        detections.append(detection)
+                        vehicle_counts[vehicle_type] += 1
+                        
+                        # Draw bounding box and label
+                        if CV2_AVAILABLE:
+                            color = colors.get(vehicle_type, (0, 255, 0))
+                            cv2.rectangle(annotated_image, (x1, y1), (x2, y2), color, 2)
+                            
+                            # Draw label
+                            label = f"{vehicle_type}: {conf:.2f}"
+                            cv2.putText(annotated_image, label, (x1, y1-10), 
+                                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+                        else:
+                            # Use PIL for drawing when OpenCV is not available
+                            pil_image = Image.fromarray(annotated_image)
+                            draw = ImageDraw.Draw(pil_image)
+                            
+                            color = colors.get(vehicle_type, (0, 255, 0))
+                            draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
+                            
+                            # Draw label
+                            label = f"{vehicle_type}: {conf:.2f}"
+                            draw.text((x1, y1-15), label, fill=color)
+                            
+                            annotated_image = np.array(pil_image)
+            
+            # Calculate traffic density
+            height, width = image.shape[:2]
+            total_area = width * height
+            vehicle_area = sum([(det['bbox'][2] - det['bbox'][0]) * 
+                               (det['bbox'][3] - det['bbox'][1]) for det in detections])
+            density = vehicle_area / total_area if total_area > 0 else 0
+            
+            # Create density map
+            density_map = self._create_density_map(detections, (height, width))
+            
+            return {
+                'detections': detections,
+                'vehicle_counts': dict(vehicle_counts),
+                'annotated_image': annotated_image,
+                'density': density,
+                'density_map': density_map,
+                'total_vehicles': len(detections)
+            }
+            
+        except Exception as e:
+            print(f"YOLO detection failed: {e}")
+            print("Falling back to simulated detection")
+            return self._simulated_detection(image)
     
     def _simulated_detection(self, image):
         """Simulate vehicle detection for demonstration"""
@@ -368,3 +471,9 @@ class TrafficImageProcessor:
         }
         
         return flow_data
+    
+    def set_confidence_threshold(self, threshold=0.5):
+        """Set confidence threshold for YOLO detections"""
+        self.confidence_threshold = threshold
+        if self.model_loaded and hasattr(self.model, 'conf'):
+            self.model.conf = threshold
