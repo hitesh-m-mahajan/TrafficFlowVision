@@ -211,15 +211,17 @@ class FogComputingSimulator:
         # Calculate total processing time
         total_duration = time.time() - simulation_start
         
-        # Add summary
+        # Add summary (without efficiency first)
         results['Simulation_Summary'] = {
             'total_duration_ms': round(total_duration * 1000, 2),
             'total_steps': len(self.processing_steps),
             'encryption_key_hash': hashlib.sha256(encryption_key).hexdigest()[:16],
-            'overall_efficiency': self._calculate_efficiency(results),
             'security_level': 'High (AES-256 Encryption)',
             'fog_nodes_utilized': len([node for node in self.fog_nodes.keys() if 'edge' in node])
         }
+        
+        # Calculate and add efficiency after summary is created
+        results['Simulation_Summary']['overall_efficiency'] = self._calculate_efficiency(results)
         
         return results
     
