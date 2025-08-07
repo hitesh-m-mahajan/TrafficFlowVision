@@ -1,17 +1,23 @@
 import pandas as pd
 import numpy as np
+
 try:
     from sklearn.ensemble import RandomForestRegressor
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import LabelEncoder, StandardScaler, PolynomialFeatures
     from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, mean_squared_error, r2_score
     from sklearn.linear_model import LinearRegression
-    from sklearn.layers import Conv1D, MaxPooling1D, Input, LayerNormalization, Add, Flatten
-    from sklearn.models import Model
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+
+try:
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Input, Add, Flatten
+    from tensorflow.keras.layers import LayerNormalization, MultiHeadAttention
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.callbacks import EarlyStopping
+    from tensorflow.keras.models import Model
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
