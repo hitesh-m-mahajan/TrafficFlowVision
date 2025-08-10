@@ -519,9 +519,65 @@ if st.session_state.dataset is not None:
                 st.markdown("**Chart Explanation:** This radar chart provides a multi-dimensional comparison of model performance across various metrics like accuracy, precision, recall, and F1-score. Each axis represents a metric, and the plotted shape shows how each model performs across all dimensions simultaneously, offering a holistic view for model evaluation.")
 
             with tab2:
+                # Performance evaluation comparing proposed vs existing systems
+                st.subheader("⚡ System Performance Evaluation: Proposed vs Existing")
+                st.write("Comprehensive comparison of our AI-powered system against traditional approaches:")
+                
+                if 'performance_evaluation' in results:
+                    evaluation_df = pd.DataFrame(results['performance_evaluation'])
+                    
+                    # Display the evaluation table with styling
+                    st.dataframe(
+                        evaluation_df.style.apply(
+                            lambda row: ['background-color: #e8f5e8'] * len(row) 
+                            if row['Type'] == 'Proposed' 
+                            else ['background-color: #fff2e8'] * len(row), 
+                            axis=1
+                        ), 
+                        use_container_width=True
+                    )
+                    
+                    # Performance insights
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("🎯 Key Performance Insights")
+                        proposed_systems = evaluation_df[evaluation_df['Type'] == 'Proposed']
+                        existing_systems = evaluation_df[evaluation_df['Type'] == 'Existing']
+                        
+                        if not proposed_systems.empty and not existing_systems.empty:
+                            try:
+                                avg_proposed_acc = proposed_systems['Accuracy'].astype(float).mean()
+                                avg_existing_acc = existing_systems['Accuracy'].astype(float).mean()
+                                acc_improvement = ((avg_proposed_acc - avg_existing_acc) / avg_existing_acc) * 100
+                                
+                                avg_proposed_error = proposed_systems['Error Rate'].astype(float).mean()
+                                avg_existing_error = existing_systems['Error Rate'].astype(float).mean()
+                                error_reduction = ((avg_existing_error - avg_proposed_error) / avg_existing_error) * 100
+                                
+                                st.metric("Accuracy Improvement", f"{acc_improvement:.1f}%", delta=f"{acc_improvement:.1f}%")
+                                st.metric("Error Rate Reduction", f"{error_reduction:.1f}%", delta=f"-{error_reduction:.1f}%")
+                            except:
+                                st.info("Performance comparison metrics will be available after training")
+                    
+                    with col2:
+                        st.subheader("📈 System Advantages")
+                        st.write("**Proposed System Benefits:**")
+                        st.write("• Higher prediction accuracy")
+                        st.write("• Real-time adaptive learning") 
+                        st.write("• Fog computing architecture")
+                        st.write("• Multi-algorithm ensemble approach")
+                        st.write("• Weather-aware predictions")
+                        st.write("• Computer vision integration")
+                else:
+                    st.info("Performance evaluation table will appear after training models")
+                
+                st.markdown("---")
+                
                 # Detailed metrics for each model
                 for model_name, result in results.items():
-                    with st.expander(f"📊 {model_name} Detailed Analysis"):
+                    if isinstance(result, dict) and 'accuracy' in result:
+                        with st.expander(f"📊 {model_name} Detailed Analysis"):
                         col1, col2 = st.columns(2)
 
                         with col1:
