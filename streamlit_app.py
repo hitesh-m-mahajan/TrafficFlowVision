@@ -578,7 +578,7 @@ if st.session_state.dataset is not None:
                 for model_name, result in results.items():
                     if isinstance(result, dict) and 'accuracy' in result:
                         with st.expander(f"📊 {model_name} Detailed Analysis"):
-                        col1, col2 = st.columns(2)
+                            col1, col2 = st.columns(2)
 
                         with col1:
                             st.markdown("#### 📈 Classification Metrics")
