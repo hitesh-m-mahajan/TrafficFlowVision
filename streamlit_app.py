@@ -420,103 +420,123 @@ if st.session_state.dataset is not None:
             results = st.session_state.trained_models
             col1, col2, col3, col4 = st.columns(4)
 
-            with col1:
-                best_accuracy = max([result['accuracy'] for result in results.values()])
-                st.metric("🎯 Best Accuracy", f"{best_accuracy:.3f}")
-            with col2:
-                avg_precision = np.mean([result['precision'] for result in results.values()])
-                st.metric("📈 Avg Precision", f"{avg_precision:.3f}")
-            with col3:
-                avg_recall = np.mean([result['recall'] for result in results.values()])
-                st.metric("📊 Avg Recall", f"{avg_recall:.3f}")
-            with col4:
-                avg_f1 = np.mean([result['f1_score'] for result in results.values()])
-                st.metric("⚡ Avg F1-Score", f"{avg_f1:.3f}")
+            # Filter out non-model results
+            model_results = {k: v for k, v in results.items() 
+                           if isinstance(v, dict) and 'accuracy' in v}
+            
+            if model_results:
+                with col1:
+                    best_accuracy = max([result['accuracy'] for result in model_results.values()])
+                    st.metric("🎯 Best Accuracy", f"{best_accuracy:.3f}")
+                with col2:
+                    avg_precision = np.mean([result['precision'] for result in model_results.values()])
+                    st.metric("📈 Avg Precision", f"{avg_precision:.3f}")
+                with col3:
+                    avg_recall = np.mean([result['recall'] for result in model_results.values()])
+                    st.metric("📊 Avg Recall", f"{avg_recall:.3f}")
+                with col4:
+                    avg_f1 = np.mean([result['f1_score'] for result in model_results.values()])
+                    st.metric("⚡ Avg F1-Score", f"{avg_f1:.3f}")
+            else:
+                with col1:
+                    st.metric("🎯 Best Accuracy", "N/A")
+                with col2:
+                    st.metric("📈 Avg Precision", "N/A")
+                with col3:
+                    st.metric("📊 Avg Recall", "N/A")
+                with col4:
+                    st.metric("⚡ Avg F1-Score", "N/A")
 
             # Model comparison charts
             tab1, tab2, tab3 = st.tabs(["📊 Performance Comparison", "🎯 Detailed Metrics", "🔍 Model Analysis"])
 
             with tab1:
                 # Performance comparison chart
-                model_names = list(results.keys())
-                accuracies = [results[name]['accuracy'] for name in model_names]
-                precisions = [results[name]['precision'] for name in model_names]
-                recalls = [results[name]['recall'] for name in model_names]
-                f1_scores = [results[name]['f1_score'] for name in model_names]
+                model_results = {k: v for k, v in results.items() 
+                               if isinstance(v, dict) and 'accuracy' in v}
+                
+                if model_results:
+                    model_names = list(model_results.keys())
+                    accuracies = [model_results[name]['accuracy'] for name in model_names]
+                    precisions = [model_results[name]['precision'] for name in model_names]
+                    recalls = [model_results[name]['recall'] for name in model_names]
+                    f1_scores = [model_results[name]['f1_score'] for name in model_names]
 
-                fig_comparison = go.Figure()
+                    fig_comparison = go.Figure()
 
-                fig_comparison.add_trace(go.Bar(
-                    name='Accuracy',
-                    x=model_names,
-                    y=accuracies,
-                    marker_color='#FF6B6B'
-                ))
-
-                fig_comparison.add_trace(go.Bar(
-                    name='Precision',
-                    x=model_names,
-                    y=precisions,
-                    marker_color='#4ECDC4'
-                ))
-
-                fig_comparison.add_trace(go.Bar(
-                    name='Recall',
-                    x=model_names,
-                    y=recalls,
-                    marker_color='#45B7D1'
-                ))
-
-                fig_comparison.add_trace(go.Bar(
-                    name='F1-Score',
-                    x=model_names,
-                    y=f1_scores,
-                    marker_color='#96CEB4'
-                ))
-
-                fig_comparison.update_layout(
-                    title="Model Performance Comparison",
-                    barmode='group',
-                    height=500
-                )
-
-                st.plotly_chart(fig_comparison, use_container_width=True)
-                st.markdown("**Chart Explanation:** This grouped bar chart compares the performance metrics of different machine learning models across four key dimensions: accuracy, precision, recall, and F1-score. Each color represents a different metric, allowing you to quickly identify which models excel in specific areas and make informed decisions about model selection based on your prioritized performance criteria.")
-
-                # Radar chart for comprehensive comparison
-                categories = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
-
-                fig_radar = go.Figure()
-
-                colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
-                for i, model_name in enumerate(model_names):
-                    values = [
-                        results[model_name]['accuracy'],
-                        results[model_name]['precision'],
-                        results[model_name]['recall'],
-                        results[model_name]['f1_score']
-                    ]
-
-                    fig_radar.add_trace(go.Scatterpolar(
-                        r=values,
-                        theta=categories,
-                        fill='toself',
-                        name=model_name,
-                        line_color=colors[i % len(colors)]
+                    fig_comparison.add_trace(go.Bar(
+                        name='Accuracy',
+                        x=model_names,
+                        y=accuracies,
+                        marker_color='#FF6B6B'
                     ))
 
-                fig_radar.update_layout(
-                    polar=dict(
-                        radialaxis=dict(
-                            visible=True,
-                            range=[0, 1]
-                        )),
-                    title="Multi-dimensional Model Comparison",
-                    height=500
-                )
+                    fig_comparison.add_trace(go.Bar(
+                        name='Precision',
+                        x=model_names,
+                        y=precisions,
+                        marker_color='#4ECDC4'
+                    ))
 
-                st.plotly_chart(fig_radar, use_container_width=True)
-                st.markdown("**Chart Explanation:** This radar chart provides a multi-dimensional comparison of model performance across various metrics like accuracy, precision, recall, and F1-score. Each axis represents a metric, and the plotted shape shows how each model performs across all dimensions simultaneously, offering a holistic view for model evaluation.")
+                    fig_comparison.add_trace(go.Bar(
+                        name='Recall',
+                        x=model_names,
+                        y=recalls,
+                        marker_color='#45B7D1'
+                    ))
+
+                    fig_comparison.add_trace(go.Bar(
+                        name='F1-Score',
+                        x=model_names,
+                        y=f1_scores,
+                        marker_color='#96CEB4'
+                    ))
+
+                    fig_comparison.update_layout(
+                        title="Model Performance Comparison",
+                        barmode='group',
+                        height=500
+                    )
+
+                    st.plotly_chart(fig_comparison, use_container_width=True)
+                    st.markdown("**Chart Explanation:** This grouped bar chart compares the performance metrics of different machine learning models across four key dimensions: accuracy, precision, recall, and F1-score. Each color represents a different metric, allowing you to quickly identify which models excel in specific areas and make informed decisions about model selection based on your prioritized performance criteria.")
+
+                    # Radar chart for comprehensive comparison
+                    categories = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+
+                    fig_radar = go.Figure()
+
+                    colors = ['#FF6B6B', '#4ECDC4', '#45B7D1']
+                    for i, model_name in enumerate(model_names):
+                        values = [
+                            model_results[model_name]['accuracy'],
+                            model_results[model_name]['precision'],
+                            model_results[model_name]['recall'],
+                            model_results[model_name]['f1_score']
+                        ]
+
+                        fig_radar.add_trace(go.Scatterpolar(
+                            r=values,
+                            theta=categories,
+                            fill='toself',
+                            name=model_name,
+                            line_color=colors[i % len(colors)]
+                        ))
+
+                    fig_radar.update_layout(
+                        polar=dict(
+                            radialaxis=dict(
+                                visible=True,
+                                range=[0, 1]
+                            )),
+                        title="Multi-dimensional Model Comparison",
+                        height=500
+                    )
+
+                    st.plotly_chart(fig_radar, use_container_width=True)
+                    st.markdown("**Chart Explanation:** This radar chart provides a multi-dimensional comparison of model performance across various metrics like accuracy, precision, recall, and F1-score. Each axis represents a metric, and the plotted shape shows how each model performs across all dimensions simultaneously, offering a holistic view for model evaluation.")
+                else:
+                    st.info("No model results available for visualization")
 
             with tab2:
                 # Performance evaluation comparing proposed vs existing systems
