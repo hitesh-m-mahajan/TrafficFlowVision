@@ -1,8 +1,12 @@
 streamlit
-ultralytics
-torch
-torchvision
-opencv-python
 pandas
 numpy
+opencv-python-headless
+pillow
+plotly
 matplotlib
+seaborn
+ultralytics
+networkx
+scikit-learn
+xgboost
