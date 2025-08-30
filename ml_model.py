@@ -12,12 +12,12 @@ except ImportError:
     SKLEARN_AVAILABLE = False
 
 try:
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Input, Add, Flatten
-    from tensorflow.keras.layers import LayerNormalization, MultiHeadAttention
-    from tensorflow.keras.optimizers import Adam
-    from tensorflow.keras.callbacks import EarlyStopping
-    from tensorflow.keras.models import Model
+    from tensorflow.keras.models import Sequential # pyright: ignore[reportMissingImports]
+    from tensorflow.keras.layers import LSTM, Dense, Dropout, Conv1D, MaxPooling1D, Input, Add, Flatten # pyright: ignore[reportMissingImports]
+    from tensorflow.keras.layers import LayerNormalization, MultiHeadAttention # pyright: ignore[reportMissingImports]
+    from tensorflow.keras.optimizers import Adam # pyright: ignore[reportMissingImports]
+    from tensorflow.keras.callbacks import EarlyStopping # pyright: ignore[reportMissingImports]
+    from tensorflow.keras.models import Model # pyright: ignore[reportMissingImports]
     TENSORFLOW_AVAILABLE = True
 except ImportError:
     TENSORFLOW_AVAILABLE = False
@@ -252,10 +252,14 @@ class TrafficMLModel:
         if "CNN-LSTM" in selected_models:
             if TENSORFLOW_AVAILABLE:
                 print("Training CNN-LSTM...")
+                # Before reshaping for CNN-LSTM, check shape validity
+                if X_train_scaled.shape[0] == 0 or X_train_scaled.shape[1] == 0:
+                    raise ValueError(f"Cannot train CNN-LSTM: X_train_scaled shape is {X_train_scaled.shape}")
                 X_train_cnn_lstm = X_train_scaled.reshape((X_train_scaled.shape[0], X_train_scaled.shape[1], 1))
                 X_test_cnn_lstm = X_test_scaled.reshape((X_test_scaled.shape[0], X_test_scaled.shape[1], 1))
 
-                cnn_lstm_model = self._create_cnn_lstm_model(X_train_scaled.shape[1])
+                # Pass input_shape as a tuple (timesteps, features)
+                cnn_lstm_model = self._create_cnn_lstm_model((X_train_scaled.shape[1], 1))
                 
                 early_stop = EarlyStopping(monitor='val_loss', patience=5, restore_best_weights=True)
 
@@ -338,8 +342,8 @@ class TrafficMLModel:
                 'predictions': y_pred_transformer
             }
 
-        # Train Ensemble Model
-        if len(self.ensemble_predictions) > 0:
+        # Train Ensemble Model only if at least two models are available
+        if len(self.ensemble_predictions) >= 2:
             print("Training Ensemble Model...")
             ensemble_pred = self._create_ensemble_prediction(y_test)
             if ensemble_pred is not None:
@@ -361,6 +365,8 @@ class TrafficMLModel:
                 }
             else:
                 print("Could not create ensemble predictions.")
+        else:
+            print("Skipping ensemble model: Need at least two trained models for ensemble prediction.")
 
 
         self.models = {name: result['model'] for name, result in results.items() if result['model'] is not None}
@@ -449,11 +455,11 @@ class TrafficMLModel:
         # Add existing systems to comparison
         for system_name, metrics in existing_systems.items():
             performance_data.append({
-                "System": system_name,
+                "System Name": system_name,
                 "Type": "Existing",
                 "Error Rate": f"{metrics['error_rate']:.3f}",
                 "Memory (MB)": f"{metrics['memory_mb']}",
-                "Complexity Score": f"{metrics['complexity_score']}/5",
+                    "Complexity Score": f"{metrics['complexity_score']}/5",
                 "Computation Time (ms)": f"{metrics['computation_ms']}",
                 "Accuracy": f"{metrics['accuracy']:.3f}",
                 "MSE": "N/A",
@@ -477,7 +483,7 @@ class TrafficMLModel:
                 comp_time = self._estimate_computation_time(model_name, model_data.get('type', 'unknown'))
                 
                 performance_data.append({
-                    "System": f"{model_name} (Proposed)",
+                    "System Name": f"{model_name} (Proposed)",
                     "Type": "Proposed",
                     "Error Rate": f"{error_rate:.3f}",
                     "Memory (MB)": f"{memory_usage}",
@@ -489,7 +495,9 @@ class TrafficMLModel:
                     "Description": f"AI-powered {model_name} model with fog computing"
                 })
         
-        return performance_data
+        # Return as DataFrame for compatibility with downstream code
+        import pandas as pd
+        return pd.DataFrame(performance_data)
     
     def _generate_simulated_performance_evaluation(self, results):
         """Generate simulated performance evaluation for when ML libraries aren't available"""
@@ -532,7 +540,7 @@ class TrafficMLModel:
         # Add existing systems to comparison
         for system_name, metrics in existing_systems.items():
             performance_data.append({
-                "System": system_name,
+                "System Name": system_name,
                 "Type": "Existing",
                 "Error Rate": f"{metrics['error_rate']:.3f}",
                 "Memory (MB)": f"{metrics['memory_mb']}",
@@ -553,7 +561,7 @@ class TrafficMLModel:
                 comp_time = random.randint(100, 1000)
                 
                 performance_data.append({
-                    "System": f"{model_name} (Proposed)",
+                    "System Name": f"{model_name} (Proposed)",
                     "Type": "Proposed",
                     "Error Rate": f"{error_rate:.3f}",
                     "Memory (MB)": f"{memory_usage}",
@@ -653,8 +661,8 @@ class TrafficMLModel:
         else:
             X_scaled = X
 
-        # Make prediction based on model type
-        if model is None:
+        # Avoid using 'performance_evaluation' as a model
+        if model is None or isinstance(model, pd.DataFrame):
             # Return a simulated prediction
             base_prediction = 50.0
             weather_impact = {'Sunny': 1.0, 'Cloudy': 0.95, 'Rainy': 0.8, 'Snowy': 0.7, 'Foggy': 0.75}
@@ -671,27 +679,31 @@ class TrafficMLModel:
 
         if hasattr(model, 'predict'):
             # Handle different model input shapes (e.g., LSTM, CNN-LSTM, Transformer)
-            if len(X_scaled.shape) == 2 and hasattr(model, 'layers'):  # Potentially a sequential model like LSTM
-                # Check if the model expects 3D input (samples, timesteps, features)
-                # This is a heuristic; a more robust check might involve inspecting model.input_shape
-                if model.input_shape[-1] == X_scaled.shape[-1] and model.input_shape[1] != X_scaled.shape[1]:
-                     X_reshaped = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))
-                else:
-                     X_reshaped = X_scaled
-                
-                # Check if it's a Keras model with predict method
-                if hasattr(model, 'predict'):
-                    prediction = model.predict(X_reshaped, verbose=0)
-                    # Try to flatten the prediction if it's multi-dimensional
-                    if isinstance(prediction, np.ndarray) and prediction.ndim > 1:
-                        prediction = prediction.flatten()
-                    # Return the first prediction if multiple are generated
-                    if isinstance(prediction, np.ndarray) and len(prediction) > 0:
-                        return prediction[0]
+            if len(X_scaled.shape) == 2 and hasattr(model, 'layers'):
+                # CNN-LSTM expects 3D input: (samples, timesteps, features)
+                # If model contains Conv1D, treat as CNN-LSTM
+                layer_types = [type(layer).__name__ for layer in getattr(model, 'layers', [])]
+                if 'Conv1D' in layer_types:
+                    # Reshape to (samples, features, 1)
+                    if X_scaled.ndim == 2:
+                        X_reshaped = X_scaled.reshape((X_scaled.shape[0], X_scaled.shape[1], 1))
                     else:
-                        return prediction # Might be a single value already
+                        X_reshaped = X_scaled
+                elif model.input_shape[-1] == X_scaled.shape[-1] and model.input_shape[1] != X_scaled.shape[1]:
+                    # LSTM/Transformer: (samples, 1, features)
+                    X_reshaped = X_scaled.reshape((X_scaled.shape[0], 1, X_scaled.shape[1]))
+                else:
+                    X_reshaped = X_scaled
 
-            elif hasattr(model, 'predict') and not hasattr(model, 'layers'): # Scikit-learn or XGBoost models
+                prediction = model.predict(X_reshaped, verbose=0)
+                if isinstance(prediction, np.ndarray) and prediction.ndim > 1:
+                    prediction = prediction.flatten()
+                if isinstance(prediction, np.ndarray) and len(prediction) > 0:
+                    return prediction[0]
+                else:
+                    return prediction
+
+            elif hasattr(model, 'predict') and not hasattr(model, 'layers'):
                 prediction = model.predict(X_scaled)
                 if isinstance(prediction, np.ndarray) and len(prediction) > 0:
                     return prediction[0]
@@ -752,29 +764,22 @@ class TrafficMLModel:
         # Note: Ensemble model predictions are not saved/loaded as a single model object in this structure.
         # They would need to be re-generated or stored separately.
 
-    def _create_cnn_lstm_model(self, input_features):
+    def _create_cnn_lstm_model(self, input_shape):
         """Create CNN-LSTM hybrid model for traffic prediction"""
-        # Input shape: (timesteps, features) - assuming we treat each timestamp as a sequence element
-        # The input_features here is the number of features per timestep.
-        # For our current setup, X_train_scaled.shape[1] is the number of features.
-        # We need to reshape to (samples, timesteps, features), e.g., (n_samples, 1, input_features) if we consider each data point as a sequence of length 1.
-        # However, if we want to use Conv1D, it typically expects (samples, steps, channels)
-        # Let's assume input_features is the number of features per time step, and we have a sequence of length 1.
-        
+        # input_shape should be a tuple: (timesteps, features)
+        if not isinstance(input_shape, tuple) or len(input_shape) != 2:
+            raise ValueError(f"input_shape must be a tuple of (timesteps, features), got {input_shape}")
+        if input_shape[0] == 0 or input_shape[1] == 0:
+            raise ValueError(f"Invalid input_shape for CNN-LSTM: {input_shape}")
+        print(f"Building CNN-LSTM model with input_shape={input_shape}")  # For debugging
         model = Sequential([
-            Conv1D(filters=32, kernel_size=2, activation='relu', input_shape=(1, input_features)), # Input shape adjusted for sequence of length 1
+            Conv1D(filters=32, kernel_size=2, activation='relu', input_shape=input_shape),
             Conv1D(filters=64, kernel_size=2, activation='relu'),
-            MaxPooling1D(pool_size=1), # Pool size 1 doesn't change dimensions, often used if kernel size is large
-            Dropout(0.3),
-            LSTM(50, return_sequences=True),
-            LSTM(25, return_sequences=False),
-            Dropout(0.2),
-            Dense(50, activation='relu'),
-            Dense(25, activation='relu'),
+            MaxPooling1D(pool_size=1),
+            LSTM(50, return_sequences=False),
             Dense(1)
         ])
-
-        model.compile(optimizer=Adam(learning_rate=0.001), loss='mse', metrics=['mae'])
+        model.compile(optimizer='adam', loss='mse')
         return model
 
     def _create_transformer_model(self, input_features):

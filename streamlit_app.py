@@ -642,7 +642,7 @@ if st.session_state.dataset is not None:
                         fig_radar_perf = go.Figure()
                         
                         # Normalize complexity (invert for radar chart - higher is better)
-                        complexity_normalized = 6 - evaluation_df['System Complexity'].str.split('/').str[0].astype(int)
+                        complexity_normalized = 6 - evaluation_df['Complexity Score'].str.split('/').str[0].astype(int)
                         
                         for idx, row in evaluation_df.iterrows():
                             values = [
