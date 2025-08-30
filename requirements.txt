@@ -1,12 +1,25 @@
+# Core framework
 streamlit
+
+# Data handling
 pandas
 numpy
-opencv-python-headless
-pillow
+
+# Machine Learning & AI
+scikit-learn
+xgboost
+ultralytics
+torch
+torchvision
+
+# Image processing
+opencv-python
+Pillow
+
+# Visualization
 plotly
 matplotlib
 seaborn
-ultralytics
+
+# Graphs / networks
 networkx
-scikit-learn
-xgboost
